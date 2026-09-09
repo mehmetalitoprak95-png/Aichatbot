@@ -1,0 +1,39 @@
+name: Build Signed AAB (bulut derleme)
+
+on:
+  workflow_dispatch:   # Play Console'daki "Run workflow" butonu ile elle çalıştır
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle kur
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14"
+
+      - name: Keystore'u GitHub secret'ından geçici dosyaya yaz
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore-release.jks
+
+      - name: İmzalı AAB üret
+        env:
+          KEYSTORE_PATH: "${{ github.workspace }}/keystore-release.jks"
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle :app:bundleRelease --no-daemon
+
+      - name: AAB'yi indirme olarak paylaş
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-aab
+          path: app/build/outputs/bundle/release/app-release.aab
