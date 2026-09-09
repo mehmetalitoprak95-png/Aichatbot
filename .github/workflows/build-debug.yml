@@ -3,6 +3,9 @@ name: Build Debug APK (test icin)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,8 +24,15 @@ jobs:
       - name: Debug APK derle (imzasiz, sadece test icin)
         run: gradle :app:assembleDebug --no-daemon
 
-      - name: APK'yi indirme olarak paylas
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+      - name: APK'yi indirilebilir branch'e yayinla
+        run: |
+          mkdir -p /tmp/apk-out
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/apk-out/AIChatBot-debug.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan apk-builds
+          git rm -rf . > /dev/null 2>&1 || true
+          cp /tmp/apk-out/AIChatBot-debug.apk .
+          git add AIChatBot-debug.apk
+          git commit -m "Debug APK build run ${{ github.run_number }}"
+          git push origin apk-builds --force
