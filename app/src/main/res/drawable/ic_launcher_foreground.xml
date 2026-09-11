@@ -1,31 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Sohbet balonu -->
+    <!-- Ince orbit halkasi -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M28,36 h52 a9,9 0 0 1 9,9 v22 a9,9 0 0 1 -9,9 h-27 l-12,12 v-12 h-13 a9,9 0 0 1 -9,-9 v-22 a9,9 0 0 1 9,-9 z" />
+        android:pathData="M54,24 a30,30 0 1 1 -0.1,0 z"
+        android:strokeColor="#40FFFFFF"
+        android:strokeWidth="1.6"
+        android:fillColor="#00000000" />
 
-    <!-- Balonun içindeki üç nokta -->
-    <path
-        android:fillColor="#1D4ED8"
-        android:pathData="M42,56 m-3.5,0 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0" />
-    <path
-        android:fillColor="#1D4ED8"
-        android:pathData="M54,56 m-3.5,0 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0" />
-    <path
-        android:fillColor="#1D4ED8"
-        android:pathData="M66,56 m-3.5,0 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0" />
+    <!-- T monogrami: ust cubuk -->
+    <path android:pathData="M33,33 h42 v12 h-42 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="33" android:startY="33"
+                android:endX="75" android:endY="45"
+                android:startColor="#60A5FA"
+                android:endColor="#A78BFA" />
+        </aapt:attr>
+    </path>
 
-    <!-- Parlama detayları -->
+    <!-- T monogrami: govde -->
+    <path android:pathData="M48,45 h12 v36 h-12 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="48" android:startY="45"
+                android:endX="60" android:endY="81"
+                android:startColor="#818CF8"
+                android:endColor="#A78BFA" />
+        </aapt:attr>
+    </path>
+
+    <!-- Kivilcim / AI vurgusu -->
     <path
-        android:fillColor="#93C5FD"
-        android:pathData="M70,18 h4 a2,2 0 0 1 2,2 v4 a2,2 0 0 1 -2,2 h-4 a2,2 0 0 1 -2,-2 v-4 a2,2 0 0 1 2,-2 z" />
-    <path
-        android:fillColor="#A5B4FC"
-        android:pathData="M82,30 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0" />
+        android:fillColor="#FBBF24"
+        android:pathData="M76,23 L78.2,28.3 L83.5,30 L78.2,31.7 L76,37 L73.8,31.7 L68.5,30 L73.8,28.3 Z" />
 </vector>
