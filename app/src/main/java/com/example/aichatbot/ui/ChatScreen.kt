@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -64,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.example.aichatbot.R
 import com.example.aichatbot.data.ChatApi
 import com.example.aichatbot.data.ChatMessage
+import com.example.aichatbot.data.LocalStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,18 +78,15 @@ fun ChatScreen() {
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    var baseUrl by remember { mutableStateOf("") }
-    var apiKey by remember { mutableStateOf("") }
-    var model by remember { mutableStateOf("") }
+    val savedSettings = remember { LocalStore.loadSettings(context) }
+    var baseUrl by remember { mutableStateOf(savedSettings.first) }
+    var apiKey by remember { mutableStateOf(savedSettings.second) }
+    var model by remember { mutableStateOf(savedSettings.third) }
     var showSettings by remember { mutableStateOf(false) }
 
-    var messages by remember {
-        mutableStateOf(
-            listOf(
-                ChatMessage("assistant", "Merhaba! Ben TORQ Ai. Nasıl yardımcı olabilirim? 🙂")
-            )
-        )
-    }
+    val welcomeMessage = ChatMessage("assistant", "Merhaba! Ben TORQ Ai. Nasıl yardımcı olabilirim? 🙂")
+    var messages by remember { mutableStateOf(listOf(welcomeMessage)) }
+    var historyLoaded by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var selectedImage by remember { mutableStateOf<String?>(null) }
@@ -101,6 +100,18 @@ fun ChatScreen() {
                 selectedImage = downscaleAndEncode(context, uri)
             }
         }
+    }
+
+    // Kaydedilmis sohbet gecmisini bir kere yukle (varsa)
+    LaunchedEffect(Unit) {
+        val saved = LocalStore.loadHistory(context)
+        if (saved.isNotEmpty()) messages = saved
+        historyLoaded = true
+    }
+
+    // Sohbet her degistiginde diske kaydet (ilk yukleme bitmeden kaydetme, uzerine yazmasin)
+    LaunchedEffect(messages) {
+        if (historyLoaded) LocalStore.saveHistory(context, messages)
     }
 
     LaunchedEffect(messages.size) {
@@ -117,6 +128,12 @@ fun ChatScreen() {
                     )
                 },
                 actions = {
+                    IconButton(onClick = {
+                        messages = listOf(welcomeMessage)
+                        scope.launch { LocalStore.clearHistory(context) }
+                    }) {
+                        Icon(Icons.Default.RestartAlt, contentDescription = "Yeni sohbet")
+                    }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Ayarlar")
                     }
@@ -271,6 +288,7 @@ fun ChatScreen() {
             onDismiss = { showSettings = false },
             onSave = { b, k, m ->
                 baseUrl = b; apiKey = k; model = m
+                LocalStore.saveSettings(context, b, k, m)
                 showSettings = false
             }
         )
