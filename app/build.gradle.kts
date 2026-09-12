@@ -29,6 +29,14 @@ android {
                 keyPassword = System.getenv("KEY_PASSWORD")
             }
         }
+        getByName("debug") {
+            // Sabit bir debug anahtari: her CI derlemesi ayni imzayla ciksin ki
+            // test surumleri veri kaybetmeden (ayarlar/sohbet gecmisi) uzerine guncellensin.
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {

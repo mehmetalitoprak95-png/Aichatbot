@@ -44,6 +44,26 @@ object ChatApi {
         history: List<ChatMessage>,
         generateImage: Boolean = false
     ): ChatResult = withContext(Dispatchers.IO) {
+        var lastError: Exception? = null
+        repeat(2) { attempt ->
+            try {
+                return@withContext sendOnce(baseUrl, apiKey, model, history, generateImage)
+            } catch (e: IOException) {
+                // Baglanti kopmasi gibi gecici hatalarda bir kez daha dene
+                lastError = e
+                if (attempt == 0) Thread.sleep(700)
+            }
+        }
+        throw lastError ?: IOException("Bilinmeyen ağ hatası")
+    }
+
+    private fun sendOnce(
+        baseUrl: String,
+        apiKey: String,
+        model: String,
+        history: List<ChatMessage>,
+        generateImage: Boolean
+    ): ChatResult {
         val payload = JSONObject()
             .put("model", model)
             .put("max_tokens", 1500)
@@ -62,7 +82,7 @@ object ChatApi {
             .post(payload.toString().toRequestBody(jsonMedia))
             .build()
 
-        client.newCall(request).execute().use { response ->
+        return client.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}: $body")
 
