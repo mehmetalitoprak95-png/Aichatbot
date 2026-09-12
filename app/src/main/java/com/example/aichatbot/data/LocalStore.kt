@@ -11,7 +11,10 @@ private const val PREFS_NAME = "torqai_settings"
 private const val KEY_BASE_URL = "base_url"
 private const val KEY_API_KEY = "api_key"
 private const val KEY_MODEL = "model"
+private const val KEY_THEME_MODE = "theme_mode"
 private const val HISTORY_FILE = "chat_history.json"
+
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 /**
  * Ayarlari (SharedPreferences) ve sohbet gecmisini (dosya) telefonda saklar,
@@ -33,6 +36,22 @@ object LocalStore {
             .putString(KEY_BASE_URL, baseUrl)
             .putString(KEY_API_KEY, apiKey)
             .putString(KEY_MODEL, model)
+            .apply()
+    }
+
+    fun loadThemeMode(context: Context): ThemeMode {
+        val raw = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_THEME_MODE, ThemeMode.SYSTEM.name)
+        return try {
+            ThemeMode.valueOf(raw ?: ThemeMode.SYSTEM.name)
+        } catch (e: Exception) {
+            ThemeMode.SYSTEM
+        }
+    }
+
+    fun saveThemeMode(context: Context, mode: ThemeMode) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putString(KEY_THEME_MODE, mode.name)
             .apply()
     }
 
