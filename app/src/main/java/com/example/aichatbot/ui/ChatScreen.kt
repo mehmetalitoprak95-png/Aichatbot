@@ -78,6 +78,8 @@ import androidx.compose.ui.unit.sp
 import com.example.aichatbot.R
 import com.example.aichatbot.data.ChatApi
 import com.example.aichatbot.data.ChatMessage
+import com.example.aichatbot.data.DEFAULT_CHAT_MODEL
+import com.example.aichatbot.data.DEFAULT_IMAGE_MODEL
 import com.example.aichatbot.data.LocalStore
 import com.example.aichatbot.data.ThemeMode
 import com.example.aichatbot.ui.theme.AIChatBotTheme
@@ -102,9 +104,10 @@ fun ChatScreen() {
     }
 
     val savedSettings = remember { LocalStore.loadSettings(context) }
-    var baseUrl by remember { mutableStateOf(savedSettings.first) }
-    var apiKey by remember { mutableStateOf(savedSettings.second) }
-    var model by remember { mutableStateOf(savedSettings.third) }
+    var baseUrl by remember { mutableStateOf(savedSettings.baseUrl) }
+    var apiKey by remember { mutableStateOf(savedSettings.apiKey) }
+    var chatModel by remember { mutableStateOf(savedSettings.chatModel) }
+    var imageModel by remember { mutableStateOf(savedSettings.imageModel) }
     var showSettings by remember { mutableStateOf(false) }
 
     val welcomeMessage = ChatMessage("assistant", "Merhaba! Ben TORQ Ai. Nasıl yardımcı olabilirim? 🙂")
@@ -349,7 +352,9 @@ fun ChatScreen() {
 
                                     scope.launch {
                                         try {
-                                            val result = ChatApi.sendMessage(baseUrl, apiKey, model, messages, generateImage = wantImage)
+                                            val activeModel = (if (wantImage) imageModel else chatModel)
+                                                .ifBlank { if (wantImage) DEFAULT_IMAGE_MODEL else DEFAULT_CHAT_MODEL }
+                                            val result = ChatApi.sendMessage(baseUrl, apiKey, activeModel, messages, generateImage = wantImage)
                                             messages = messages + ChatMessage(
                                                 "assistant",
                                                 result.text ?: if (result.imageDataUrl != null) "" else "(boş cevap)",
@@ -386,11 +391,12 @@ fun ChatScreen() {
                 SettingsDialog(
                     baseUrl = baseUrl,
                     apiKey = apiKey,
-                    model = model,
+                    chatModel = chatModel,
+                    imageModel = imageModel,
                     onDismiss = { showSettings = false },
-                    onSave = { b, k, m ->
-                        baseUrl = b; apiKey = k; model = m
-                        LocalStore.saveSettings(context, b, k, m)
+                    onSave = { b, k, cm, im ->
+                        baseUrl = b; apiKey = k; chatModel = cm; imageModel = im
+                        LocalStore.saveSettings(context, b, k, cm, im)
                         showSettings = false
                     }
                 )
@@ -447,13 +453,15 @@ private fun MessageBubble(msg: ChatMessage) {
 private fun SettingsDialog(
     baseUrl: String,
     apiKey: String,
-    model: String,
+    chatModel: String,
+    imageModel: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, String) -> Unit
+    onSave: (String, String, String, String) -> Unit
 ) {
     var b by remember { mutableStateOf(baseUrl) }
     var k by remember { mutableStateOf(apiKey) }
-    var m by remember { mutableStateOf(model) }
+    var cm by remember { mutableStateOf(chatModel) }
+    var im by remember { mutableStateOf(imageModel) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -474,22 +482,29 @@ private fun SettingsDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = m, onValueChange = { m = it },
-                    label = { Text("Model") },
-                    placeholder = { Text("openrouter/free") },
+                    value = cm, onValueChange = { cm = it },
+                    label = { Text("Sohbet Modeli") },
+                    placeholder = { Text(DEFAULT_CHAT_MODEL) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = im, onValueChange = { im = it },
+                    label = { Text("Görsel Üretim Modeli") },
+                    placeholder = { Text(DEFAULT_IMAGE_MODEL) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Görsel üretmek için modeli görsel destekleyen bir modelle değiştir " +
-                        "(ör. google/gemini-2.5-flash-image-preview). Bu modeller genelde ücretlidir.",
+                    "✨ ile görsel üretirken bu ikinci model, normal sohbette ilk model kullanılır — " +
+                        "artık aralarında elle geçiş yapmana gerek yok.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(b.trim(), k.trim(), m.trim()) }) { Text("Kaydet") }
+            TextButton(onClick = { onSave(b.trim(), k.trim(), cm.trim(), im.trim()) }) { Text("Kaydet") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("İptal") }

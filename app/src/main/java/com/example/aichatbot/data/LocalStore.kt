@@ -10,11 +10,22 @@ import java.io.File
 private const val PREFS_NAME = "torqai_settings"
 private const val KEY_BASE_URL = "base_url"
 private const val KEY_API_KEY = "api_key"
-private const val KEY_MODEL = "model"
+private const val KEY_CHAT_MODEL = "model"
+private const val KEY_IMAGE_MODEL = "image_model"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val HISTORY_FILE = "chat_history.json"
 
+const val DEFAULT_CHAT_MODEL = "openrouter/free"
+const val DEFAULT_IMAGE_MODEL = "sourceful/riverflow-v2.5-fast:free"
+
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+data class AppSettings(
+    val baseUrl: String,
+    val apiKey: String,
+    val chatModel: String,
+    val imageModel: String
+)
 
 /**
  * Ayarlari (SharedPreferences) ve sohbet gecmisini (dosya) telefonda saklar,
@@ -22,20 +33,22 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
  */
 object LocalStore {
 
-    fun loadSettings(context: Context): Triple<String, String, String> {
+    fun loadSettings(context: Context): AppSettings {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return Triple(
-            prefs.getString(KEY_BASE_URL, "") ?: "",
-            prefs.getString(KEY_API_KEY, "") ?: "",
-            prefs.getString(KEY_MODEL, "") ?: ""
+        return AppSettings(
+            baseUrl = prefs.getString(KEY_BASE_URL, "") ?: "",
+            apiKey = prefs.getString(KEY_API_KEY, "") ?: "",
+            chatModel = prefs.getString(KEY_CHAT_MODEL, "") ?: "",
+            imageModel = prefs.getString(KEY_IMAGE_MODEL, "") ?: ""
         )
     }
 
-    fun saveSettings(context: Context, baseUrl: String, apiKey: String, model: String) {
+    fun saveSettings(context: Context, baseUrl: String, apiKey: String, chatModel: String, imageModel: String) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
             .putString(KEY_BASE_URL, baseUrl)
             .putString(KEY_API_KEY, apiKey)
-            .putString(KEY_MODEL, model)
+            .putString(KEY_CHAT_MODEL, chatModel)
+            .putString(KEY_IMAGE_MODEL, imageModel)
             .apply()
     }
 
