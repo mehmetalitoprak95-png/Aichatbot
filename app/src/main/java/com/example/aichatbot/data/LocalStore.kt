@@ -16,7 +16,7 @@ private const val KEY_THEME_MODE = "theme_mode"
 private const val HISTORY_FILE = "chat_history.json"
 
 const val DEFAULT_CHAT_MODEL = "openrouter/free"
-const val DEFAULT_IMAGE_MODEL = "sourceful/riverflow-v2.5-fast:free"
+const val DEFAULT_IMAGE_MODEL = "sourceful/riverflow-v2.5-fast"
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
