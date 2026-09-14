@@ -75,7 +75,9 @@ object ChatApi {
             })
 
         if (generateImage) {
-            payload.put("modalities", JSONArray(listOf("image", "text")))
+            // Not: Sourceful/Flux gibi bazi modeller yalnizca "image" cikisi destekler,
+            // "image"+"text" birlikte istenirse endpoint bulunamiyor hatasi veriyor.
+            payload.put("modalities", JSONArray(listOf("image")))
         }
 
         val request = Request.Builder()
