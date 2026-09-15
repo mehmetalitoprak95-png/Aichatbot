@@ -22,17 +22,27 @@ jobs:
           gradle-version: "8.14"
 
       - name: Debug APK derle (imzasiz, sadece test icin)
-        run: gradle :app:assembleDebug --no-daemon
+        id: build
+        run: gradle :app:assembleDebug --no-daemon > /tmp/build.log 2>&1
+        continue-on-error: true
 
-      - name: APK'yi indirilebilir branch'e yayinla
+      - name: Sonucu yayinla (basariliysa APK, degilse hata logu)
+        if: always()
         run: |
           mkdir -p /tmp/apk-out
-          cp app/build/outputs/apk/debug/app-debug.apk /tmp/apk-out/AIChatBot-debug.apk
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk /tmp/apk-out/AIChatBot-debug.apk
+          fi
+          cp /tmp/build.log /tmp/apk-out/build-log.txt
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout --orphan apk-builds
           git rm -rf . > /dev/null 2>&1 || true
-          cp /tmp/apk-out/AIChatBot-debug.apk .
-          git add AIChatBot-debug.apk
-          git commit -m "Debug APK build run ${{ github.run_number }}"
+          cp /tmp/apk-out/* .
+          git add -A
+          git commit -m "Build run ${{ github.run_number }} (${{ steps.build.outcome }})"
           git push origin apk-builds --force
+
+      - name: Derleme basarisizsa isi kirmizi yap
+        if: steps.build.outcome == 'failure'
+        run: exit 1
