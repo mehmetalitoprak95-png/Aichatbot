@@ -10,6 +10,8 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,8 +33,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -78,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import com.example.aichatbot.R
 import com.example.aichatbot.data.ChatApi
 import com.example.aichatbot.data.ChatMessage
+import com.example.aichatbot.data.Conversation
 import com.example.aichatbot.data.DEFAULT_CHAT_MODEL
 import com.example.aichatbot.data.DEFAULT_IMAGE_MODEL
 import com.example.aichatbot.data.LocalStore
@@ -110,8 +116,10 @@ fun ChatScreen() {
     var imageModel by remember { mutableStateOf(savedSettings.imageModel) }
     var showSettings by remember { mutableStateOf(false) }
 
-    val welcomeMessage = ChatMessage("assistant", "Merhaba! Ben TORQ Ai. Nasıl yardımcı olabilirim? 🙂")
+    val welcomeMessage = ChatMessage("assistant", "Merhaba! Ben TORQ Ai Build. Nasıl yardımcı olabilirim? 🙂")
     var messages by remember { mutableStateOf(listOf(welcomeMessage)) }
+    var conversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
+    var activeConversationId by remember { mutableStateOf("") }
     var historyLoaded by remember { mutableStateOf(false) }
     var input by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -128,16 +136,39 @@ fun ChatScreen() {
         }
     }
 
-    // Kaydedilmis sohbet gecmisini bir kere yukle (varsa)
+    fun deriveTitle(msgs: List<ChatMessage>): String {
+        val firstUser = msgs.firstOrNull { it.role == "user" && it.text.isNotBlank() }
+        val raw = firstUser?.text?.trim()
+        return if (raw.isNullOrBlank()) "Yeni Sohbet"
+        else if (raw.length > 32) raw.take(32) + "…" else raw
+    }
+
+    // Kaydedilmis sohbetleri bir kere yukle (varsa); yoksa yeni bir sohbet olustur
     LaunchedEffect(Unit) {
-        val saved = LocalStore.loadHistory(context)
-        if (saved.isNotEmpty()) messages = saved
+        val saved = LocalStore.loadConversations(context)
+        if (saved.isNotEmpty()) {
+            val newest = saved.maxByOrNull { it.updatedAt }!!
+            conversations = saved
+            activeConversationId = newest.id
+            messages = newest.messages
+        } else {
+            val id = java.util.UUID.randomUUID().toString()
+            activeConversationId = id
+            conversations = listOf(Conversation(id, "Yeni Sohbet", System.currentTimeMillis(), listOf(welcomeMessage)))
+        }
         historyLoaded = true
     }
 
-    // Sohbet her degistiginde diske kaydet (ilk yukleme bitmeden kaydetme, uzerine yazmasin)
+    // Sohbet her degistiginde aktif konusmayi guncelleyip diske kaydet
     LaunchedEffect(messages) {
-        if (historyLoaded) LocalStore.saveHistory(context, messages)
+        if (historyLoaded && activeConversationId.isNotBlank()) {
+            conversations = conversations.map { c ->
+                if (c.id == activeConversationId) {
+                    c.copy(messages = messages, title = deriveTitle(messages), updatedAt = System.currentTimeMillis())
+                } else c
+            }
+            LocalStore.saveConversations(context, conversations)
+        }
     }
 
     LaunchedEffect(messages.size) {
@@ -145,8 +176,17 @@ fun ChatScreen() {
     }
 
     fun startNewChat() {
+        val id = java.util.UUID.randomUUID().toString()
+        val fresh = Conversation(id, "Yeni Sohbet", System.currentTimeMillis(), listOf(welcomeMessage))
+        conversations = listOf(fresh) + conversations
+        activeConversationId = id
         messages = listOf(welcomeMessage)
-        scope.launch { LocalStore.clearHistory(context) }
+        scope.launch { drawerState.close() }
+    }
+
+    fun openConversation(conversation: Conversation) {
+        activeConversationId = conversation.id
+        messages = conversation.messages
         scope.launch { drawerState.close() }
     }
 
@@ -160,6 +200,7 @@ fun ChatScreen() {
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet {
+                  Column(Modifier.verticalScroll(rememberScrollState())) {
                     Text(
                         stringResource(R.string.app_name),
                         style = MaterialTheme.typography.titleLarge,
@@ -183,6 +224,30 @@ fun ChatScreen() {
                         },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
+                    if (conversations.isNotEmpty()) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        Text(
+                            "SOHBETLER",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 28.dp)
+                        )
+                        conversations.sortedByDescending { it.updatedAt }.forEach { conv ->
+                            NavigationDrawerItem(
+                                label = {
+                                    Text(
+                                        conv.title,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                },
+                                icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) },
+                                selected = conv.id == activeConversationId,
+                                onClick = { openConversation(conv) },
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                        }
+                    }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     Text(
                         "GÖRÜNÜM",
@@ -211,6 +276,7 @@ fun ChatScreen() {
                         onClick = { changeTheme(ThemeMode.DARK) },
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
+                  }
                 }
             }
         ) {
@@ -409,43 +475,214 @@ fun ChatScreen() {
 private fun MessageBubble(msg: ChatMessage) {
     val isUser = msg.isUser
     val bitmap = remember(msg.imageDataUrl) { msg.imageDataUrl?.let { decodeDataUrlToBitmap(it) } }
+    val context = LocalContext.current
 
     Box(
         Modifier.fillMaxWidth(),
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Surface(
-            modifier = Modifier.widthIn(max = 280.dp),
-            shape = RoundedCornerShape(
-                topStart = 20.dp,
-                topEnd = 20.dp,
-                bottomStart = if (isUser) 20.dp else 6.dp,
-                bottomEnd = if (isUser) 6.dp else 20.dp
-            ),
-            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-            shadowElevation = 1.dp
-        ) {
-            Column(Modifier.padding(if (bitmap != null) 6.dp else 12.dp)) {
-                bitmap?.let {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                    )
-                    if (msg.text.isNotBlank()) Spacer(Modifier.height(8.dp))
+        Column(horizontalAlignment = if (isUser) Alignment.End else Alignment.Start) {
+            Surface(
+                modifier = Modifier.widthIn(max = 280.dp),
+                shape = RoundedCornerShape(
+                    topStart = 20.dp,
+                    topEnd = 20.dp,
+                    bottomStart = if (isUser) 20.dp else 6.dp,
+                    bottomEnd = if (isUser) 6.dp else 20.dp
+                ),
+                color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                shadowElevation = 1.dp
+            ) {
+                Column(Modifier.padding(if (bitmap != null) 6.dp else 12.dp)) {
+                    bitmap?.let {
+                        Image(
+                            bitmap = it.asImageBitmap(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                        )
+                        if (msg.text.isNotBlank()) Spacer(Modifier.height(8.dp))
+                    }
+                    if (msg.text.isNotBlank()) {
+                        MarkdownContent(
+                            text = msg.text,
+                            textColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = if (bitmap != null) Modifier.padding(horizontal = 6.dp, vertical = 4.dp) else Modifier
+                        )
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (bitmap != null) {
+                    val bubbleScope = rememberCoroutineScope()
+                    IconButton(
+                        modifier = Modifier.size(28.dp),
+                        onClick = {
+                            bubbleScope.launch {
+                                val ok = saveImageToGallery(context, msg.imageDataUrl!!)
+                                android.widget.Toast.makeText(
+                                    context,
+                                    if (ok) "Galeriye kaydedildi" else "Kaydedilemedi",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Görseli indir",
+                            modifier = Modifier.size(15.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
                 if (msg.text.isNotBlank()) {
-                    Text(
-                        msg.text,
-                        modifier = if (bitmap != null) Modifier.padding(horizontal = 6.dp, vertical = 4.dp) else Modifier,
-                        color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    IconButton(
+                        modifier = Modifier.size(28.dp),
+                        onClick = { copyToClipboard(context, msg.text) }
+                    ) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            contentDescription = "Kopyala",
+                            modifier = Modifier.size(15.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * Hafif bir markdown gosterimi: ```kod blogu``` ve **kalin** metni destekler.
+ * Kod bloklari kendi kopyala butonuyla ayri bir kutuda gosterilir.
+ */
+@Composable
+private fun MarkdownContent(text: String, textColor: Color, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val segments = remember(text) { splitCodeBlocks(text) }
+
+    Column(modifier) {
+        segments.forEach { segment ->
+            if (segment.isCode) {
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF0F172A),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(10.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                segment.language.ifBlank { "kod" },
+                                fontSize = 11.sp,
+                                color = Color(0xFF94A3B8)
+                            )
+                            IconButton(
+                                modifier = Modifier.size(24.dp),
+                                onClick = { copyToClipboard(context, segment.content) }
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Kodu kopyala",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
+                        }
+                        Text(
+                            segment.content,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            color = Color(0xFFE2E8F0)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
+            } else if (segment.content.isNotBlank()) {
+                Text(annotatedBold(segment.content), color = textColor)
+            }
+        }
+    }
+}
+
+private data class TextSegment(val content: String, val isCode: Boolean, val language: String = "")
+
+private fun splitCodeBlocks(text: String): List<TextSegment> {
+    val regex = Regex("```(\\w*)\\n?([\\s\\S]*?)```")
+    val result = mutableListOf<TextSegment>()
+    var lastEnd = 0
+    regex.findAll(text).forEach { match ->
+        if (match.range.first > lastEnd) {
+            result.add(TextSegment(text.substring(lastEnd, match.range.first), isCode = false))
+        }
+        val lang = match.groupValues[1]
+        val code = match.groupValues[2].trimEnd('\n')
+        result.add(TextSegment(code, isCode = true, language = lang))
+        lastEnd = match.range.last + 1
+    }
+    if (lastEnd < text.length) {
+        result.add(TextSegment(text.substring(lastEnd), isCode = false))
+    }
+    if (result.isEmpty()) result.add(TextSegment(text, isCode = false))
+    return result
+}
+
+/** "**kalin**" isaretlerini kalin metne cevirir, kalan metni oldugu gibi birakir. */
+private fun annotatedBold(text: String) = androidx.compose.ui.text.buildAnnotatedString {
+    var remaining = text
+    val regex = Regex("\\*\\*(.+?)\\*\\*")
+    var index = 0
+    regex.findAll(text).forEach { match ->
+        if (match.range.first > index) append(text.substring(index, match.range.first))
+        pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+        append(match.groupValues[1])
+        pop()
+        index = match.range.last + 1
+    }
+    if (index < text.length) append(text.substring(index))
+}
+
+private fun copyToClipboard(context: Context, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("TORQ Ai Build", text))
+    if (android.os.Build.VERSION.SDK_INT < 33) {
+        android.widget.Toast.makeText(context, "Kopyalandı", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
+private suspend fun saveImageToGallery(context: Context, dataUrl: String): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val base64Part = dataUrl.substringAfter(",", "")
+        if (base64Part.isBlank()) return@withContext false
+        val bytes = Base64.decode(base64Part, Base64.DEFAULT)
+        val filename = "TORQAi_${System.currentTimeMillis()}.jpg"
+
+        val resolver = context.contentResolver
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, filename)
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(
+                    android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                    android.os.Environment.DIRECTORY_PICTURES + "/TORQ Ai Build"
+                )
+            }
+        }
+
+        val uri = resolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: return@withContext false
+        resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return@withContext false
+        true
+    } catch (e: Exception) {
+        false
     }
 }
 

@@ -13,7 +13,14 @@ private const val KEY_API_KEY = "api_key"
 private const val KEY_CHAT_MODEL = "model"
 private const val KEY_IMAGE_MODEL = "image_model"
 private const val KEY_THEME_MODE = "theme_mode"
-private const val HISTORY_FILE = "chat_history.json"
+private const val CONVERSATIONS_FILE = "conversations.json"
+
+data class Conversation(
+    val id: String,
+    val title: String,
+    val updatedAt: Long,
+    val messages: List<ChatMessage>
+)
 
 const val DEFAULT_CHAT_MODEL = "openrouter/free"
 const val DEFAULT_IMAGE_MODEL = "sourceful/riverflow-v2.5-fast"
@@ -107,6 +114,61 @@ object LocalStore {
         try {
             File(context.filesDir, HISTORY_FILE).delete()
         } catch (e: Exception) {
+        }
+    }
+
+    suspend fun loadConversations(context: Context): List<Conversation> = withContext(Dispatchers.IO) {
+        try {
+            val file = File(context.filesDir, CONVERSATIONS_FILE)
+            if (!file.exists()) return@withContext emptyList()
+            val arr = JSONArray(file.readText())
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                val msgsArr = o.getJSONArray("messages")
+                val msgs = (0 until msgsArr.length()).map { j ->
+                    val m = msgsArr.getJSONObject(j)
+                    ChatMessage(
+                        role = m.getString("role"),
+                        text = m.optString("text", ""),
+                        imageDataUrl = m.optString("imageDataUrl", "").ifBlank { null }
+                    )
+                }
+                Conversation(
+                    id = o.getString("id"),
+                    title = o.getString("title"),
+                    updatedAt = o.optLong("updatedAt", 0L),
+                    messages = msgs
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun saveConversations(context: Context, conversations: List<Conversation>) = withContext(Dispatchers.IO) {
+        try {
+            val arr = JSONArray()
+            conversations.forEach { c ->
+                val msgsArr = JSONArray()
+                c.messages.forEach { m ->
+                    msgsArr.put(
+                        JSONObject()
+                            .put("role", m.role)
+                            .put("text", m.text)
+                            .put("imageDataUrl", m.imageDataUrl ?: "")
+                    )
+                }
+                arr.put(
+                    JSONObject()
+                        .put("id", c.id)
+                        .put("title", c.title)
+                        .put("updatedAt", c.updatedAt)
+                        .put("messages", msgsArr)
+                )
+            }
+            File(context.filesDir, CONVERSATIONS_FILE).writeText(arr.toString())
+        } catch (e: Exception) {
+            // Kaydedilemezse sessizce gec
         }
     }
 }

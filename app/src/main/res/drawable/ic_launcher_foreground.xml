@@ -9,36 +9,44 @@
     <!-- Ince orbit halkasi -->
     <path
         android:pathData="M54,24 a30,30 0 1 1 -0.1,0 z"
-        android:strokeColor="#40FFFFFF"
-        android:strokeWidth="1.6"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="1.4"
         android:fillColor="#00000000" />
 
-    <!-- T monogrami: ust cubuk -->
-    <path android:pathData="M33,33 h42 v12 h-42 z">
+    <!-- Cekic sapi (T govdesi) -->
+    <path android:pathData="M49,44 h10 v38 a5,5 0 0 1 -5,5 h0 a5,5 0 0 1 -5,-5 z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="33" android:startY="33"
-                android:endX="75" android:endY="45"
-                android:startColor="#60A5FA"
-                android:endColor="#A78BFA" />
-        </aapt:attr>
-    </path>
-
-    <!-- T monogrami: govde -->
-    <path android:pathData="M48,45 h12 v36 h-12 z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="48" android:startY="45"
-                android:endX="60" android:endY="81"
+                android:startX="49" android:startY="44"
+                android:endX="59" android:endY="82"
                 android:startColor="#818CF8"
                 android:endColor="#A78BFA" />
         </aapt:attr>
     </path>
 
-    <!-- Kivilcim / AI vurgusu -->
+    <!-- Cekic basi (T ust cubugu, hafif egimli kenarli) -->
+    <path android:pathData="M31,32 h46 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 h-46 a4,4 0 0 1 -4,-4 v-8 a4,4 0 0 1 4,-4 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="27" android:startY="32"
+                android:endX="81" android:endY="48"
+                android:startColor="#60A5FA"
+                android:endColor="#A78BFA" />
+        </aapt:attr>
+    </path>
+
+    <!-- Capraz tornavida: sap -->
     <path
         android:fillColor="#FBBF24"
-        android:pathData="M76,23 L78.2,28.3 L83.5,30 L78.2,31.7 L76,37 L73.8,31.7 L68.5,30 L73.8,28.3 Z" />
+        android:pathData="M70,66 l7,7 l-16,16 a3,3 0 0 1 -4,0 l-3,-3 a3,3 0 0 1 0,-4 z" />
+    <!-- Capraz tornavida: metal ucu -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M73,58 l7,7 l-6,6 l-7,-7 z" />
+    <!-- Capraz tornavida: sap tutamagi -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M79,54 l7,7 a2.5,2.5 0 0 1 0,3.5 l-1.5,1.5 l-10,-10 l1.5,-1.5 a2.5,2.5 0 0 1 3.5,0 z" />
 </vector>
