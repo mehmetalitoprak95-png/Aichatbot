@@ -14,6 +14,7 @@ private const val KEY_CHAT_MODEL = "model"
 private const val KEY_IMAGE_MODEL = "image_model"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val CONVERSATIONS_FILE = "conversations.json"
+private const val HISTORY_FILE = "chat_history.json"
 
 data class Conversation(
     val id: String,
