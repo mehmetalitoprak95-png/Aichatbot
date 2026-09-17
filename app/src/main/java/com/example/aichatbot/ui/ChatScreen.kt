@@ -735,7 +735,9 @@ private fun SettingsDialog(
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "✨ ile görsel üretirken bu ikinci model, normal sohbette ilk model kullanılır — " +
-                        "artık aralarında elle geçiş yapmana gerek yok.",
+                        "artık aralarında elle geçiş yapmana gerek yok. Fotoğrafını gönderip \"yüzüm aynı " +
+                        "kalsın\" tarzı bir düzenleme istiyorsan varsayılan model (Gemini) doğru seçim; " +
+                        "sadece hayalindeki bir sahneyi sıfırdan çizdirmek istiyorsan Riverflow daha ucuz olur.",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

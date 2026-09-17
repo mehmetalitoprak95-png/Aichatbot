@@ -24,7 +24,7 @@ data class Conversation(
 )
 
 const val DEFAULT_CHAT_MODEL = "openrouter/free"
-const val DEFAULT_IMAGE_MODEL = "sourceful/riverflow-v2.5-fast"
+const val DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 

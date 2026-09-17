@@ -75,9 +75,14 @@ object ChatApi {
             })
 
         if (generateImage) {
-            // Not: Sourceful/Flux gibi bazi modeller yalnizca "image" cikisi destekler,
-            // "image"+"text" birlikte istenirse endpoint bulunamiyor hatasi veriyor.
-            payload.put("modalities", JSONArray(listOf("image")))
+            // Gemini/GPT gibi modeller ayni anda metin+gorsel donebiliyor;
+            // Sourceful/Flux gibi saf uretim modelleri sadece gorsel destekliyor.
+            val supportsTextToo = model.contains("gemini", ignoreCase = true) ||
+                model.contains("gpt", ignoreCase = true)
+            payload.put(
+                "modalities",
+                JSONArray(if (supportsTextToo) listOf("image", "text") else listOf("image"))
+            )
         }
 
         val request = Request.Builder()
